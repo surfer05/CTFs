@@ -16,7 +16,7 @@ interface IEngine {
         bytes memory data
     ) external payable;
 }
-
+  
 contract Hack {
     function pwn(IEngine target) public {
         target.initialize();
